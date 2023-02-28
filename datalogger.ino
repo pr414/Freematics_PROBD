@@ -24,8 +24,12 @@
 #include <Wire.h>
 #include <Time.h> //NON USATA PER ORA
 #include <ArduinoJson.h>
-#include <fstream>
-#include <string>
+//#include <fstream>
+//#include <string>
+#include <SPIFFS.h>
+#include <vector>
+#include <iostream>
+using namespace std;
 
 uint16_t MMDD = 0;
 uint32_t UTC = 0;
@@ -54,34 +58,9 @@ const int port = 50009;
 const char* topicToPublish = "/telemetry/obd/car1";
 const char* username = "priva";
 const char* password = "KObM2u96t%&M#e%%ShZ#H!5Ls$0UEN^wXLuegI@*1rudAPeQE"; //CHECK %
-const char* certificate_path = "../intermediate_ca.pem";
-const char *x509CA PROGMEM = R"EOF("
------BEGIN CERTIFICATE-----
-MIIENjCCAx6gAwIBAgIUGFQHYrPCIetdZ2Qy2cUrSeuX/n0wDQYJKoZIhvcNAQEL
-BQAwgaAxCzAJBgNVBAYTAklUMRAwDgYDVQQHEwdCcmVzY2lhMR4wHAYDVQQKExVV
-bml2ZXJzaXR5IG9mIEJyZXNjaWExQDA+BgNVBAsTN2VMVVggTGFib3JhdG9yeSAt
-IERlcGFydG1lbnQgb2YgSW5mb3JtYXRpb24gRW5naW5lZXJpbmcxHTAbBgNVBAMT
-FGVMVVgtSW50ZXJtZWRpYXRlLUNBMB4XDTE4MDYwODA5MzYwMFoXDTIzMDQyMzA5
-MzYwMFowgaAxCzAJBgNVBAYTAklUMRAwDgYDVQQHEwdCcmVzY2lhMR4wHAYDVQQK
-ExVVbml2ZXJzaXR5IG9mIEJyZXNjaWExQDA+BgNVBAsTN2VMVVggTGFib3JhdG9y
-eSAtIERlcGFydG1lbnQgb2YgSW5mb3JtYXRpb24gRW5naW5lZXJpbmcxHTAbBgNV
-BAMTFGVMVVgtSW50ZXJtZWRpYXRlLUNBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
-MIIBCgKCAQEAvKpFuiUfCBrvTFzEZR3E6xjAUyvo02ZxP1HT3kHEcaU3BRB/CBL3
-pVbDxemwkBlXKjHMfmiCpRX3aVSgR7qgNRjuMgG9XrNXpapMPIzEQas6m/2vSHZ+
-3gMIUemz8uLFNQFWcYNAYWU+cYaOcKYdL3EKLxCd8mE3ufkZoWBoYvV33/Ef8aox
-3X+JYb0J5H1qGLje4dvtfcIdAOXUO81K3XQgdi1VGE3KOdhhsjYTtEbKrQS5P9yO
-HLpNDvJctLZWEBjR5kdsux21TCXqrbVF3whrPWQJVuVZYbnRkVpmrMvX1Lbnwk0V
-1YuKllU1iG1jpgaEwNqjTzxVdfvUylwxGQIDAQABo2YwZDAOBgNVHQ8BAf8EBAMC
-AQYwEgYDVR0TAQH/BAgwBgEB/wIBAjAdBgNVHQ4EFgQU7iyn4WKaJ0lyxpNPAht6
-Pc1EKSYwHwYDVR0jBBgwFoAU7iyn4WKaJ0lyxpNPAht6Pc1EKSYwDQYJKoZIhvcN
-AQELBQADggEBAE3kbrlrPpeCFfOvZQzx2fpHsjCqhG904Tj9rg4idP+UmzSsgcn8
-wGy5UFrYkyRAAryuPhAS47Uefigkk4mVIslU7Dl3xxAw2TCpTZs5eTOExLGAY0lH
-g6ff3e/8iRwWl8DS/yx1WFQUeLYVK7da24H7zyow4TELue+QjabsHL7dQlK7bfbI
-r4nca5jejPNDTwK4D3zoQP9xBDqflJatjuU9/3MjqUKXh4RTXuEQpj+N16VgEsMp
-BUzevFCF+JJfJW/AtmchNh8YvS2EkXIpdi3y1brkzj4wNxKYQ3AMY4E6D9SWbhbe
-YhAvMkixXS8TJE2JNWTLHW+lbk1euAU79Qs=
------END CERTIFICATE-----
-")EOF";
+const char* certificate_path = "intermediate_ca.pem";
+const char *x509CA PROGMEM = "";
+//")EOF";
 char* PROGMEM mqtt_certificate = "";
 //FILE *ca = fopen(ca_certificate, "rb");
 
@@ -142,26 +121,42 @@ void callback(char* topic, byte* message, unsigned int length) {
 
 void setup_mqtt() {
   //Lettura Certificato CA in "certificate"
-    std::ifstream file(certificate_path);
-    std::string str;
-    std::string certificate; //Specifico che voglio che il file rimanga salvato nella memoria flash con PROGMEM invece che nella RAM
+  int c;
+  int i=0;
+  char* cert_content;
+  File cert_file = SPIFFS.open(certificate_path, FILE_READ);
+  
+  vector<String> v;
+  if (!cert_file) {
+    Serial.println("Failed to open CA Certificate");
+    return;
+  } else {
+    
+    while (cert_file.available()) {
+      v.push_back(cert_file.readStringUntil('\n'));
+    }
+    cert_file.close();
+    cert_file.
+  }
+  for (String s : v) {
+    cert_content += s.c_str();
+  }
+  /*
+    while (cert_file.available()) {
+      cert_content[i++] = cert_file.read();
+    } 
+  */
 
-    while (std::getline(file, str)) {
-      certificate += str;
-      certificate.push_back('\n');
-    }  
+  Serial.println("\nCertificate Content appended: ");
+  Serial.printf("%s", cert_content);
+  Serial.println();
 
-    //Setting del Certificato SSL
-    mqtt_certificate = const_cast<char*>(certificate.c_str());
-    Serial.println();
-    Serial.println("CERTIFICATO LETTO:");
-    Serial.println(x509CA);
-    Serial.println();
-    espClient.setCACert(x509CA);
+  //Setting del Certificato SSL
+  espClient.setCACert(cert_content);
 
-    //Setting del Server MQTT e Callback sul topic
-    client.setServer(mqtt_server, port);
-    client.setCallback(callback);
+  //Setting del Server MQTT e Callback sul topic
+  client.setServer(mqtt_server, port);
+  client.setCallback(callback);
 }
 
 void retryOBD()
@@ -201,6 +196,12 @@ void setup()
     Serial.print(ESP.getCpuFreqMHz());
     Serial.print("MHz ");
     
+  //SPI FLASH FILE SYSTEM Setup
+  if(!SPIFFS.begin(true)) {
+    Serial.println("Error Initializating SPI File System");
+    return;
+  }
+
   //WiFi Setup
   setup_wifi();
   
@@ -209,22 +210,25 @@ void setup()
 
   //OBD Setup
   byte ver = obd.begin();
-    Serial.print("Firmware Ver. ");
-    Serial.println(ver);
+  Serial.print("Firmware Ver. ");
+  Serial.println(ver);
 
-    Serial.print("OBD ");
-      if (obd.init()) {
-        Serial.println("Initialization OK");
-        // retrieve VIN
-        char buffer[128];
-        if (obd.getVIN(buffer, sizeof(buffer))) {
-          Serial.print("VIN:");
-          Serial.println(buffer);
-        }
-      } else {
-        Serial.println("Initialization ERR");
-        retryOBD();
-      }
+  Serial.print("OBD ");
+  if (obd.init()) {
+    Serial.println("Initialization OK");
+    // retrieve VIN
+    char buffer[128];
+    if (obd.getVIN(buffer, sizeof(buffer))) {
+      Serial.print("VIN:");
+      Serial.println(buffer);
+    }
+  } else {
+    Serial.println("Initialization ERR");
+    retryOBD();
+  }
+
+  
+
 }
 
 void loop() {
