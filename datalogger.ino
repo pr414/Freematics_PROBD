@@ -29,7 +29,9 @@
 #include <SPIFFS.h>
 #include <vector>
 #include <iostream>
+
 using namespace std;
+
 
 uint16_t MMDD = 0;
 uint32_t UTC = 0;
@@ -58,9 +60,8 @@ const int port = 50009;
 const char* topicToPublish = "/telemetry/obd/car1";
 const char* username = "priva";
 const char* password = "KObM2u96t%&M#e%%ShZ#H!5Ls$0UEN^wXLuegI@*1rudAPeQE"; //CHECK %
-const char* certificate_path = "intermediate_ca.pem";
-const char *x509CA PROGMEM = "";
-//")EOF";
+const char* certificate_path = "/intermediate_ca.pem";
+
 char* PROGMEM mqtt_certificate = "";
 //FILE *ca = fopen(ca_certificate, "rb");
 
@@ -73,7 +74,7 @@ int value = 0;
 
 //Variabili per Freematics ONE+
 bool connected = false;
-unsigned long count = 0;
+unsigned long pack_count = 0;
 
 void setup_wifi() {
   delay(10);
@@ -123,24 +124,31 @@ void setup_mqtt() {
   //Lettura Certificato CA in "certificate"
   int c;
   int i=0;
-  char* cert_content;
   File cert_file = SPIFFS.open(certificate_path, FILE_READ);
-  
+
   vector<String> v;
   if (!cert_file) {
     Serial.println("Failed to open CA Certificate");
     return;
   } else {
-    
+    delay(100);
+    //v.push_back("\"\n");
     while (cert_file.available()) {
-      v.push_back(cert_file.readStringUntil('\n'));
+      v.push_back(cert_file.readString());
+      //v.push_back("\n");
+      delay(100);
     }
+    //v.push_back("\"");
     cert_file.close();
-    cert_file.
   }
+
+  String cert_toString = "";
   for (String s : v) {
-    cert_content += s.c_str();
+    cert_toString.concat(s);
   }
+  
+  
+  const char* cert_content = cert_toString.c_str();
   /*
     while (cert_file.available()) {
       cert_content[i++] = cert_file.read();
@@ -148,7 +156,7 @@ void setup_mqtt() {
   */
 
   Serial.println("\nCertificate Content appended: ");
-  Serial.printf("%s", cert_content);
+  Serial.printf("%x", *cert_content);
   Serial.println();
 
   //Setting del Certificato SSL
@@ -169,7 +177,7 @@ void retryOBD()
 void reconnect() {
   // Loop fino alla riconnessione
   while (!client.connected()) {
-    Serial.print("Attempting MQTT reconnection...");
+    Serial.print("Attempting MQTT connection...");
     // Tentativo di Connessione
     if (client.connect(client_name, username, password)) {
       Serial.println("connected");
@@ -240,7 +248,8 @@ void loop() {
     Serial.print('[');
     Serial.print(timestamp);
     Serial.print("] #");
-    Serial.print(count++);
+    Serial.print(pack_count++);
+    Serial.print(" ");
 
     int value_read;
     byte pid = pids[i];
