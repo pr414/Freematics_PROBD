@@ -41,7 +41,7 @@ uint32_t pidErrors = 0;
 COBDSPI obd;
 //PID OBD di cui fare il Logging
 const int numOfPIDs = 7;
-byte pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_HYBRID_BATTERY_PERCENTAGE, PID_ENGINE_TORQUE_DEMANDED, PID_ENGINE_REF_TORQUE, PID_ENGINE_TORQUE_PERCENTAGE};
+byte pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_ENGINE_TORQUE_PERCENTAGE, PID_ENGINE_TORQUE_DEMANDED, PID_ENGINE_REF_TORQUE, PID_ENGINE_TORQUE_PERCENTAGE};
 char *stamps[7]= {"rpm", "speed", "throttle", "battery_perc", "torque_demanded", "torque_reference", "torque_erogated"};
 int values[7] = {0,0,0,0,0,0,0};
 
@@ -62,8 +62,35 @@ const char* username = "priva";
 const char* password = "KObM2u96t%&M#e%%ShZ#H!5Ls$0UEN^wXLuegI@*1rudAPeQE"; //CHECK %
 const char* certificate_path = "/intermediate_ca.pem";
 
-char* PROGMEM mqtt_certificate = "";
+//char* PROGMEM mqtt_certificate = "";
 //FILE *ca = fopen(ca_certificate, "rb");
+const char *x509CA PROGMEM = R"EOF("
+-----BEGIN CERTIFICATE-----
+MIIENjCCAx6gAwIBAgIUGFQHYrPCIetdZ2Qy2cUrSeuX/n0wDQYJKoZIhvcNAQEL
+BQAwgaAxCzAJBgNVBAYTAklUMRAwDgYDVQQHEwdCcmVzY2lhMR4wHAYDVQQKExVV
+bml2ZXJzaXR5IG9mIEJyZXNjaWExQDA+BgNVBAsTN2VMVVggTGFib3JhdG9yeSAt
+IERlcGFydG1lbnQgb2YgSW5mb3JtYXRpb24gRW5naW5lZXJpbmcxHTAbBgNVBAMT
+FGVMVVgtSW50ZXJtZWRpYXRlLUNBMB4XDTE4MDYwODA5MzYwMFoXDTIzMDQyMzA5
+MzYwMFowgaAxCzAJBgNVBAYTAklUMRAwDgYDVQQHEwdCcmVzY2lhMR4wHAYDVQQK
+ExVVbml2ZXJzaXR5IG9mIEJyZXNjaWExQDA+BgNVBAsTN2VMVVggTGFib3JhdG9y
+eSAtIERlcGFydG1lbnQgb2YgSW5mb3JtYXRpb24gRW5naW5lZXJpbmcxHTAbBgNV
+BAMTFGVMVVgtSW50ZXJtZWRpYXRlLUNBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+MIIBCgKCAQEAvKpFuiUfCBrvTFzEZR3E6xjAUyvo02ZxP1HT3kHEcaU3BRB/CBL3
+pVbDxemwkBlXKjHMfmiCpRX3aVSgR7qgNRjuMgG9XrNXpapMPIzEQas6m/2vSHZ+
+3gMIUemz8uLFNQFWcYNAYWU+cYaOcKYdL3EKLxCd8mE3ufkZoWBoYvV33/Ef8aox
+3X+JYb0J5H1qGLje4dvtfcIdAOXUO81K3XQgdi1VGE3KOdhhsjYTtEbKrQS5P9yO
+HLpNDvJctLZWEBjR5kdsux21TCXqrbVF3whrPWQJVuVZYbnRkVpmrMvX1Lbnwk0V
+1YuKllU1iG1jpgaEwNqjTzxVdfvUylwxGQIDAQABo2YwZDAOBgNVHQ8BAf8EBAMC
+AQYwEgYDVR0TAQH/BAgwBgEB/wIBAjAdBgNVHQ4EFgQU7iyn4WKaJ0lyxpNPAht6
+Pc1EKSYwHwYDVR0jBBgwFoAU7iyn4WKaJ0lyxpNPAht6Pc1EKSYwDQYJKoZIhvcN
+AQELBQADggEBAE3kbrlrPpeCFfOvZQzx2fpHsjCqhG904Tj9rg4idP+UmzSsgcn8
+wGy5UFrYkyRAAryuPhAS47Uefigkk4mVIslU7Dl3xxAw2TCpTZs5eTOExLGAY0lH
+g6ff3e/8iRwWl8DS/yx1WFQUeLYVK7da24H7zyow4TELue+QjabsHL7dQlK7bfbI
+r4nca5jejPNDTwK4D3zoQP9xBDqflJatjuU9/3MjqUKXh4RTXuEQpj+N16VgEsMp
+BUzevFCF+JJfJW/AtmchNh8YvS2EkXIpdi3y1brkzj4wNxKYQ3AMY4E6D9SWbhbe
+YhAvMkixXS8TJE2JNWTLHW+lbk1euAU79Qs=
+-----END CERTIFICATE-----
+")EOF";
 
 //Variabili per WiFi/MQTT
 WiFiClientSecure espClient;
@@ -160,8 +187,9 @@ void setup_mqtt() {
   Serial.println();
 
   //Setting del Certificato SSL
-  espClient.setCACert(cert_content);
+  //espClient.setCACert(cert_content);
 
+  espClient.setCACert(x509CA);
   //Setting del Server MQTT e Callback sul topic
   client.setServer(mqtt_server, port);
   client.setCallback(callback);
