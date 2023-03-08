@@ -31,7 +31,7 @@
 #include <iostream>
 
 using namespace std;
-
+//#define TORQUE_CONVERSION 200
 
 uint16_t MMDD = 0;
 uint32_t UTC = 0;
@@ -40,13 +40,16 @@ uint32_t pidErrors = 0;
 
 COBDSPI obd;
 //PID OBD di cui fare il Logging
-const int numOfPIDs = 7;
-byte pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_ENGINE_TORQUE_PERCENTAGE, PID_ENGINE_TORQUE_DEMANDED, PID_ENGINE_REF_TORQUE, PID_ENGINE_TORQUE_PERCENTAGE};
-char *stamps[7]= {"rpm", "speed", "throttle", "battery_perc", "torque_demanded", "torque_reference", "torque_erogated"};
-int values[7] = {0,0,0,0,0,0,0};
+const int numOfPIDs = 4;
+//byte pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_ENGINE_REF_TORQUE, PID_ENGINE_TORQUE_DEMANDED, PID_HYBRID_BATTERY_PERCENTAGE, PID_ENGINE_TORQUE_PERCENTAGE};
+//char *stamps[7]= {"rpm", "speed", "throttle", "torque_reference_erogation", "torque_demanded", "battery_percentage", "torque_erogated"};
+//int values[4] = {0,0,0,0,0,0,0};
+byte pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_ENGINE_REF_TORQUE};
+char *stamps[4]= {"rpm", "speed", "throttle", "torque_reference_erogation"};
+int values[4] = {0,0,0,0};
 
 //JSON Document
-const int capacity = JSON_OBJECT_SIZE(numOfPIDs+1); //bytes richiesti per avere 6 valori da serializzare + timestamp
+const int capacity = JSON_OBJECT_SIZE(numOfPIDs*2+2); //bytes richiesti per avere "numOfPIDs" valori da serializzare + timestamp
 DynamicJsonDocument jsondoc(capacity);
 
 //Credenziali di accesso all'Hotspot
@@ -311,7 +314,7 @@ void loop() {
     jsondoc[stamps[i]] = values[i];
   }
 
-  if (timestamp - lastMsg > 500) { //500 (0.5s) è l'intervallo di invio pacchetti MQTT
+  if (timestamp - lastMsg > 100) { //100 (0.1s) è l'intervallo di invio pacchetti MQTT
     lastMsg = timestamp;
     
     char jsonString[512]; //CHECK DIMENSIONE
