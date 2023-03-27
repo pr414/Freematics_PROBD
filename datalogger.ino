@@ -1,8 +1,8 @@
 /*************************************************************************
-* OBD-II/MEMS/GPS Data Logger Sketch for Freematics ONE+
+* THIS CODE IS BASED ON OBD-II/MEMS/GPS Data Logger Sketch for Freematics ONE+
 * Distributed under BSD license
 * Visit http://freematics.com/products/freematics-one-plus for more information
-* Developed by Stanley Huang <stanley@freematics.com.au>
+* Originally Developed by Stanley Huang <stanley@freematics.com.au>
 *
 * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -12,8 +12,12 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 * THE SOFTWARE.
 
-* FORK MADE BY PAOLO RIVA - 723854 UNIVERSITA' DEGLI STUDI
-* DI BRESCIA - DII ELUX LABORATORY - PROJECT SUPERVISION BY PHD. PAOLO BELLAGENTE
+* THIS FORK WAS CREATED BY PAOLO RIVA - 723854 UNIVERSITA' DEGLI STUDI DI BRESCIA,
+* THE CODE WAS WRITTEN ALONG A BACHELOR'S DEGREE THESIS PROJECT
+* PROJECT SUPERVISION PROVIDED BY PHD. PAOLO BELLAGENTE
+*
+* THIS FIRMWARE READS VEHICLE DATA, FORMATS IT AND SENDS IT TO AN MQTT BROKER
+* THE CODE IS SPECIFICALLY INTENDED FOR A FREEMATICS ONE+ DEVICE
 *************************************************************************/
 
 #include "FreematicsOBD.h"
@@ -22,51 +26,38 @@
 #include <WiFiClientSecure.h>
 #include <PubSubClient.h>
 #include <Wire.h>
-#include <Time.h> //NON USATA PER ORA
 #include <ArduinoJson.h>
-//#include <fstream>
-//#include <string>
 #include <SPIFFS.h>
 #include <vector>
 #include <iostream>
-
 using namespace std;
-//#define TORQUE_CONVERSION 200
 
-uint16_t MMDD = 0;
-uint32_t UTC = 0;
-uint32_t startTime = 0;
-uint32_t pidErrors = 0;
-
+//Variabili d'ambiente
 COBDSPI obd;
+
 //PID OBD di cui fare il Logging
 const int numOfPIDs = 4;
-//byte pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_ENGINE_REF_TORQUE, PID_ENGINE_TORQUE_DEMANDED, PID_HYBRID_BATTERY_PERCENTAGE, PID_ENGINE_TORQUE_PERCENTAGE};
-//char *stamps[7]= {"rpm", "speed", "throttle", "torque_reference_erogation", "torque_demanded", "battery_percentage", "torque_erogated"};
-//int values[4] = {0,0,0,0,0,0,0};
 byte pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_ENGINE_REF_TORQUE};
 char *stamps[4]= {"rpm", "speed", "throttle", "torque_reference_erogation"};
 int values[4] = {0,0,0,0};
 
 //JSON Document
-const int capacity = JSON_OBJECT_SIZE(numOfPIDs*2+2); //bytes richiesti per avere "numOfPIDs" valori da serializzare + timestamp
+const int capacity = JSON_OBJECT_SIZE(numOfPIDs*2+2); //bytes richiesti per avere "numOfPIDs" valori da serializzare + timestamp + margine
 DynamicJsonDocument jsondoc(capacity);
 
 //Credenziali di accesso all'Hotspot
 const char* ssid = "OnePlus-Paolo";
 const char* wifipassword = "Woahcarlo$#";
+const char* networks_path = "/wifi_networks.json";
 
-//Indirizzo e parametri del Broker MQTT
+//Parametri del Broker MQTT
 const char* client_name = "PRivaClient";
 const char* mqtt_server = "lab-elux.unibs.it";
 const int port = 50009;
 const char* topicToPublish = "/telemetry/obd/car1";
 const char* username = "priva";
-const char* password = "KObM2u96t%&M#e%%ShZ#H!5Ls$0UEN^wXLuegI@*1rudAPeQE"; //CHECK %
+const char* password = "KObM2u96t%&M#e%%ShZ#H!5Ls$0UEN^wXLuegI@*1rudAPeQE";
 const char* certificate_path = "/intermediate_ca.pem";
-
-//char* PROGMEM mqtt_certificate = "";
-//FILE *ca = fopen(ca_certificate, "rb");
 const char *x509CA PROGMEM = R"EOF("
 -----BEGIN CERTIFICATE-----
 MIIENjCCAx6gAwIBAgIUGFQHYrPCIetdZ2Qy2cUrSeuX/n0wDQYJKoZIhvcNAQEL
@@ -93,7 +84,7 @@ r4nca5jejPNDTwK4D3zoQP9xBDqflJatjuU9/3MjqUKXh4RTXuEQpj+N16VgEsMp
 BUzevFCF+JJfJW/AtmchNh8YvS2EkXIpdi3y1brkzj4wNxKYQ3AMY4E6D9SWbhbe
 YhAvMkixXS8TJE2JNWTLHW+lbk1euAU79Qs=
 -----END CERTIFICATE-----
-")EOF";
+")EOF"; //Certificato SSL richiesto dal broker
 
 //Variabili per WiFi/MQTT
 WiFiClientSecure espClient;
@@ -105,14 +96,38 @@ int value = 0;
 //Variabili per Freematics ONE+
 bool connected = false;
 unsigned long pack_count = 0;
+uint32_t pidErrors = 0;
 
+
+
+/* Funzione di configurazione Wi-Fi */
 void setup_wifi() {
   delay(10);
 
+  /*
+  File wifi_file = SPIFFS.open(networks_path, FILE_READ);
+
+  vector<String> v;
+  if (!wifi_file) {
+    Serial.println("Failed to open CA Certificate");
+    return;
+  } else {
+    delay(100);
+    //v.push_back("\"\n");
+    while (wifi_file.available()) {
+      v.push_back(wifi_file.readString());
+      //v.push_back("\n");
+      delay(100);
+    }
+    //v.push_back("\"");
+    wifi_file.close();
+  }
+  */
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
+  //Accesso al Wi-Fi
   WiFi.begin(ssid, wifipassword);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -137,7 +152,6 @@ void callback(char* topic, byte* message, unsigned int length) {
   }
   Serial.println();
 
-  // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
   // Changes the output state according to the message
   if (String(topic) == "esp32/output") {
     Serial.print("Changing output to ");
