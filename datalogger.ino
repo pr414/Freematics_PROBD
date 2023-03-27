@@ -298,7 +298,7 @@ void loop() {
     values[i] = value_read;
     //delay(1000);
   }
-  delay(1000);
+  //delay(1000);
 
   //MQTT Client-to-Broker Connection
   
