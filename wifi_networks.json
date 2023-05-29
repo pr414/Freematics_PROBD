@@ -1,0 +1,17 @@
+{
+    "networks": {
+        "1": {
+            "ssid": "Ferrari_WiFi",
+            "password" : "SebastianVettel"
+        },
+        "2": {
+            "ssid": "Mercedes_WiFi",
+            "password" : "LewisHamilton"
+        },
+        "3": {
+            "ssid": "RedBull_WiFi",
+            "password" : "DanielRicciardo"
+        }
+    }
+
+}
