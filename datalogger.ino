@@ -44,10 +44,13 @@ int values[4] = {0,0,0,0};
 //JSON Document
 const int capacity = JSON_OBJECT_SIZE(numOfPIDs*2+2); //bytes richiesti per avere "numOfPIDs" valori da serializzare + timestamp + margine
 DynamicJsonDocument jsondoc(capacity);
+DynamicJsonDocument jsondocwifi(4096);
 
 //Credenziali di accesso all'Hotspot
-const char* ssid = "OnePlus-Paolo";
-const char* wifipassword = "Woahcarlo$#";
+//const char* ssid = "OnePlus-Paolo";
+//const char* wifipassword = "Woahcarlo$#";
+const char* ssid = "";
+const char* wifipassword = "";
 const char* networks_path = "/wifi_networks.json";
 
 //Parametri del Broker MQTT
@@ -98,46 +101,48 @@ bool connected = false;
 unsigned long pack_count = 0;
 uint32_t pidErrors = 0;
 
-
-
-/* Funzione di configurazione Wi-Fi */
+/************************************
+* Funzione di configurazione Wi-Fi 
+* 
+*
+*/
 void setup_wifi() {
   delay(10);
-
-  /*
+  int ctr = 0;
+  
   File wifi_file = SPIFFS.open(networks_path, FILE_READ);
-
-  vector<String> v;
   if (!wifi_file) {
-    Serial.println("Failed to open CA Certificate");
+    Serial.println("Failed to open Wi-Fi Credential File");
     return;
   } else {
-    delay(100);
-    //v.push_back("\"\n");
-    while (wifi_file.available()) {
-      v.push_back(wifi_file.readString());
-      //v.push_back("\n");
-      delay(100);
+    deserializeJson(jsondocwifi, wifi_file);
+  }
+
+  while (true) {
+    for (JsonObject credential : jsondocwifi.as<JsonArray>()) {
+      ssid = credential["ssid"].as<const char*>();
+      password = credential["password"].as<const char*>();
+
+      Serial.println();
+      Serial.print("Connecting to ");
+      Serial.println(ssid);
+
+      //Accesso al Wi-Fi
+      for (int i=0; i<4; i++) {
+        WiFi.begin(ssid, wifipassword);
+        Serial.printf("Attempt %d\n", i);
+        delay(200);
+        if (WiFi.status() == WL_CONNECTED) {
+          Serial.println("");
+          Serial.println("WiFi connected");
+          Serial.println("Local IP address: ");
+          Serial.println(WiFi.localIP());
+          wifi_file.close();
+          return;
+        }
+      } 
     }
-    //v.push_back("\"");
-    wifi_file.close();
   }
-  */
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-
-  //Accesso al Wi-Fi
-  WiFi.begin(ssid, wifipassword);
-
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
-    delay(150);
-  }
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("Local IP address: ");
-  Serial.println(WiFi.localIP());
 }
 
 void callback(char* topic, byte* message, unsigned int length) {
