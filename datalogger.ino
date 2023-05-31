@@ -103,9 +103,10 @@ uint32_t pidErrors = 0;
 
 /************************************
 * Funzione di configurazione Wi-Fi 
-* 
-*
-*/
+* Funzione che accede ad un file JSON contenente tutte le credenziali Wi-Fi conosciute,
+* per effettuare un tentativo di accesso ciclico ad ognuna di esse. 
+* La funzione necessita di esser testata.
+************************************/
 void setup_wifi() {
   delay(10);
   int ctr = 0;
@@ -140,11 +141,17 @@ void setup_wifi() {
           wifi_file.close();
           return;
         }
-      } 
+      }
     }
   }
 }
 
+
+/************************************
+* Funzione di callback MQTT 
+* Funzione che definisce il comportamento del client alla ricezione di un messaggio sul
+* topic a cui risulta iscritto.
+************************************/
 void callback(char* topic, byte* message, unsigned int length) {
   Serial.print("Message arrived on topic: ");
   Serial.print(topic);
@@ -157,8 +164,8 @@ void callback(char* topic, byte* message, unsigned int length) {
   }
   Serial.println();
 
-  // Changes the output state according to the message
-  if (String(topic) == "esp32/output") {
+  // Se il topic scelto è "esp32/output", è possibile controllare lo stato del client solamente inviando stringhe di controllo su di esso da un altro client (in questo caso, ciò non è stato usato)
+    if (String(topic) == "esp32/output") {
     Serial.print("Changing output to ");
     if(messageTemp == "on"){
       Serial.println("on");
@@ -169,45 +176,52 @@ void callback(char* topic, byte* message, unsigned int length) {
   }
 }
 
+/************************************
+* Funzione di setup MQTT 
+* Funzione che apre il certificato inserito staticamente come variabile globale, e che lo imposta come certificato SSL per effettuare la connessione al broker
+* topic a cui risulta iscritto.
+************************************/
 void setup_mqtt() {
   //Lettura Certificato CA in "certificate"
   int c;
   int i=0;
-  File cert_file = SPIFFS.open(certificate_path, FILE_READ);
+  /* FUNZIONE DI LETTURA DAL FLASH FILE SYSTEM, FUNZIONANTE MA INSTABILE
+    File cert_file = SPIFFS.open(certificate_path, FILE_READ);
 
-  vector<String> v;
-  if (!cert_file) {
-    Serial.println("Failed to open CA Certificate");
-    return;
-  } else {
-    delay(100);
-    //v.push_back("\"\n");
-    while (cert_file.available()) {
-      v.push_back(cert_file.readString());
-      //v.push_back("\n");
+    vector<String> v;
+    if (!cert_file) {
+      Serial.println("Failed to open CA Certificate");
+      return;
+    } else {
       delay(100);
+      //v.push_back("\"\n");
+      while (cert_file.available()) {
+        v.push_back(cert_file.readString());
+        //v.push_back("\n");
+        delay(100);
+      }
+      //v.push_back("\"");
+      cert_file.close();
     }
-    //v.push_back("\"");
-    cert_file.close();
-  }
 
-  String cert_toString = "";
-  for (String s : v) {
-    cert_toString.concat(s);
-  }
-  
-  
-  const char* cert_content = cert_toString.c_str();
-  /*
-    while (cert_file.available()) {
-      cert_content[i++] = cert_file.read();
-    } 
+    String cert_toString = "";
+    for (String s : v) {
+      cert_toString.concat(s);
+    }
+    
+    
+    const char* cert_content = cert_toString.c_str();
+      
+        while (cert_file.available()) {
+          cert_content[i++] = cert_file.read();
+        } 
+    Serial.println("\nCertificate Content appended: ");
+    Serial.printf("%x", *cert_content);
+    Serial.println();
   */
-
-  Serial.println("\nCertificate Content appended: ");
-  Serial.printf("%x", *cert_content);
-  Serial.println();
-
+  
+  
+  
   //Setting del Certificato SSL
   //espClient.setCACert(cert_content);
 
