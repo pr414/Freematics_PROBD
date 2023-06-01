@@ -13,11 +13,13 @@
 * THE SOFTWARE.
 
 * THIS FORK WAS CREATED BY PAOLO RIVA - 723854 UNIVERSITA' DEGLI STUDI DI BRESCIA,
-* THE CODE WAS WRITTEN ALONG A BACHELOR'S DEGREE THESIS PROJECT
+* THE CODE WAS WRITTEN ALONG A BACHELOR'S DEGREE THESIS PROJECT DEVELOPED IN EARLY 2023
 * PROJECT SUPERVISION PROVIDED BY PHD. PAOLO BELLAGENTE
 *
 * THIS FIRMWARE READS VEHICLE DATA, FORMATS IT AND SENDS IT TO AN MQTT BROKER
-* THE CODE IS SPECIFICALLY INTENDED FOR A FREEMATICS ONE+ DEVICE
+* THE CODE IS SPECIFICALLY INTENDED FOR FREEMATICS ONE+ DEVICES
+*
+* COMMENTS IN ITALIAN
 *************************************************************************/
 
 #include "FreematicsOBD.h"
@@ -111,14 +113,16 @@ void setup_wifi() {
   delay(10);
   int ctr = 0;
   
+  //Apertura del file JSON dal SPIFFS contenente tutte le credenziali Wi-Fi conosciute
   File wifi_file = SPIFFS.open(networks_path, FILE_READ);
   if (!wifi_file) {
     Serial.println("Failed to open Wi-Fi Credential File");
     return;
   } else {
-    deserializeJson(jsondocwifi, wifi_file);
+    deserializeJson(jsondocwifi, wifi_file); //Deserializzazione delle credenziali in jsondocwifi
   }
 
+  //Tentativo di accesso ad una delle credenziali Wi-Fi conosciute
   while (true) {
     for (JsonObject credential : jsondocwifi.as<JsonArray>()) {
       ssid = credential["ssid"].as<const char*>();
@@ -128,7 +132,7 @@ void setup_wifi() {
       Serial.print("Connecting to ");
       Serial.println(ssid);
 
-      //Accesso al Wi-Fi
+      //Accesso al Wi-Fi con 4 tentativi ciclici su tutte le coppie SSID/password conosciute
       for (int i=0; i<4; i++) {
         WiFi.begin(ssid, wifipassword);
         Serial.printf("Attempt %d\n", i);
@@ -202,7 +206,6 @@ void setup_mqtt() {
   //Lettura Certificato CA in "certificate"
   int c;
   int i=0;
-/* FUNZIONE DI LETTURA DAL FLASH FILE SYSTEM, FUNZIONANTE MA INSTABILE
     File cert_file = SPIFFS.open(certificate_path, FILE_READ);
 
     vector<String> v;
@@ -235,7 +238,7 @@ void setup_mqtt() {
     Serial.println("\nCertificate Content appended: ");
     Serial.printf("%x", *cert_content);
     Serial.println();
-  */
+  
 
   //Setting del Certificato SSL
   //espClient.setCACert(cert_content);
@@ -246,23 +249,29 @@ void setup_mqtt() {
 }
 *************************************************************/
 
-
+/*************************************************************************
+* Funzione di riconnessione al veicolo tramite OBD 
+* Funzione che reinvoca la funzione init() dell'oggetto OBD per ritentare il collegamento con il veicolo
+**************************************************************************/
 void retryOBD()
     {
         if (obd.init()) return;
-        // try to re-connect to OBD
-        // turn off GPS power
     }
 
-void reconnect() {
+/*************************************************************************
+* Funzione di connessione al broker MQTT
+* Funzione che effettua tentativi ciclici di riconnessione al broker MQTT i cui parametri sono specificati come 
+* variabili globali
+**************************************************************************/
+void connect_mqtt() {
   // Loop fino alla riconnessione
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Tentativo di Connessione
     if (client.connect(client_name, username, password)) {
       Serial.println("connected");
-      // Subscription al topic
-      client.subscribe("/telemetry/obd/car1");
+      // Subscription al topic per ricezione eventuale di comandi
+      //client.subscribe("/telemetry/obd/car1"); CHECK se Necessario
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -273,9 +282,14 @@ void reconnect() {
   }
 }
 
+/*************************************************************************
+* Funzione di setup del framework Arduino 
+* Invocata a livello di framework durante il primo ciclo di esecuzione del dispositivo, ed eseguita una singola volta
+**************************************************************************/
+
 void setup()
 {
-
+  //Attesa di 2 secondi per il corretto power-up del dispositivo 
   delay(2000);
 
   //USB serial initialization
@@ -293,7 +307,7 @@ void setup()
   //WiFi Setup
   setup_wifi();
   
-  //MQTT Param Setup
+  //MQTT Broker Setup
   setup_mqtt();
 
   //OBD Setup
@@ -304,7 +318,8 @@ void setup()
   Serial.print("OBD ");
   if (obd.init()) {
     Serial.println("Initialization OK");
-    // retrieve VIN
+
+    //Per verificare l'istanziazione corretta dell'oggetto OBD, viene richiesto il Vehicle Identification Number (VIN) per verificare che l'OBD risulti accessibile
     char buffer[128];
     if (obd.getVIN(buffer, sizeof(buffer))) {
       Serial.print("VIN:");
@@ -314,28 +329,31 @@ void setup()
     Serial.println("Initialization ERR");
     retryOBD();
   }
-
-  
-
 }
 
+/*************************************************************************
+* Funzione di loop del framework Arduino 
+* Invocata ciclicamente a livello di framework durante tutto il periodo di power-on del dispositivo
+**************************************************************************/
 void loop() {
 
   long timestamp = millis();
   
   for (byte i = 0; i < sizeof(pids) / sizeof(pids[0]); i++) {
 
+    //Print del timestamp e del numero di pacchetto sulla seriale
     Serial.print('[');
     Serial.print(timestamp);
     Serial.print("] #");
     Serial.print(pack_count++);
     Serial.print(" ");
 
+    //Lettura dei valori secondo la mappa di elementi della vettura definiti dall'array pids[]
     int value_read;
     byte pid = pids[i];
     if (obd.readPID(pid, value_read)) {
       Serial.println(value_read);
-    } else {
+    } else { //Conteggio degli errori in lettura, il cui numero può invocare un reset della connessione OBD
       pidErrors++;
       Serial.print("PID errors: ");
       Serial.println(pidErrors);
@@ -343,18 +361,14 @@ void loop() {
         obd.reset();
       }
     }
-
     values[i] = value_read;
-    //delay(1000);
   }
-  //delay(1000);
 
   //MQTT Client-to-Broker Connection
-  
   if (!client.connected()) {
-    reconnect(); //Connette o Riconnette il Client al Broker specificato
+    connect_mqtt(); //Connette o Riconnette il Client al Broker specificato
   }
-  client.loop(); //Processing In-Out of the MQTT Data
+  client.loop(); //Processing In-Out dei pacchetti MQTT
 
 
   //Inserimento dati nel JSON Document Pre-Serializzazione
@@ -363,12 +377,11 @@ void loop() {
     jsondoc[stamps[i]] = values[i];
   }
 
+  //Serializzazione ed invio dei pacchetti al broker MQTT sul topic specificato come variabile globale
   if (timestamp - lastMsg > 100) { //100 (0.1s) è l'intervallo di invio pacchetti MQTT
     lastMsg = timestamp;
-    
     char jsonString[512]; //CHECK DIMENSIONE
     serializeJson(jsondoc, jsonString);
-    //dtostrf(VALOREDACONVERTIRE, 1, 2, tempString); //Convert the value to a char array
     Serial.println(jsonString);
     client.publish(topicToPublish, jsonString);
   }
