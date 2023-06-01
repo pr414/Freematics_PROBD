@@ -185,7 +185,24 @@ void setup_mqtt() {
   //Lettura Certificato CA in "certificate"
   int c;
   int i=0;
-  /* FUNZIONE DI LETTURA DAL FLASH FILE SYSTEM, FUNZIONANTE MA INSTABILE
+
+  
+  espClient.setCACert(x509CA);
+  //Setting del Server MQTT e Callback sul topic
+  client.setServer(mqtt_server, port);
+  client.setCallback(callback);
+}
+
+/*************************************************************************
+* Funzione di setup MQTT 
+* Funzione che apre il certificato caricato all'interno del SPIFFS, e che lo imposta come certificato SSL per effettuare la connessione al broker
+* topic a cui risulta iscritto. Funzionante, ma presenta instabilità che non consente la lettura 
+**************************************************************************
+void setup_mqtt() {
+  //Lettura Certificato CA in "certificate"
+  int c;
+  int i=0;
+/* FUNZIONE DI LETTURA DAL FLASH FILE SYSTEM, FUNZIONANTE MA INSTABILE
     File cert_file = SPIFFS.open(certificate_path, FILE_READ);
 
     vector<String> v;
@@ -219,17 +236,16 @@ void setup_mqtt() {
     Serial.printf("%x", *cert_content);
     Serial.println();
   */
-  
-  
-  
+
   //Setting del Certificato SSL
   //espClient.setCACert(cert_content);
-
-  espClient.setCACert(x509CA);
+  
   //Setting del Server MQTT e Callback sul topic
   client.setServer(mqtt_server, port);
   client.setCallback(callback);
 }
+*************************************************************/
+
 
 void retryOBD()
     {
