@@ -714,11 +714,11 @@ void COBDSPI::write(uint8_t* data, int bytes)
 	digitalWrite(SPI_PIN_CS, HIGH);
 }
 
-bool COBDSPI::readPID(byte pid, int& result)
+bool COBDSPI::readPID(uint16_t pid, int& result) //CAMBIATO uint16_t da byte
 {
 	char buffer[64];
 	char* data = 0;
-	sprintf(buffer, "%02X%02X\r", dataMode, pid);
+	sprintf(buffer, "%02X%02X\r", dataMode, pid); //CONTROLLARE FORMATTAZIONE a 16bit (era valida per 8)
 	write(buffer);
 #if SAFE_MODE
 	sleep(20);
@@ -729,7 +729,7 @@ bool COBDSPI::readPID(byte pid, int& result)
 		char *p = buffer;
 		while ((p = strstr(p, "41 "))) {
 			p += 3;
-			byte curpid = hex2uint8(p);
+			byte curpid = hex2uint16(p); //CAMBIATO 16 da 8
 			if (curpid == pid) {
 				errors = 0;
 				while (*p && *p != ' ') p++;

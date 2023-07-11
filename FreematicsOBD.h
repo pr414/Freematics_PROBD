@@ -94,7 +94,7 @@ public:
 	// write data to SPI bus (without header)
 	void write(uint8_t* data, int bytes);
 	// read specified OBD-II PID value
-	bool readPID(byte pid, int& result);
+	bool readPID(uint16_t pid, int& result);
 	// send AT command and receive response
 	int sendCommand(const char* cmd, char* buf, int bufsize, unsigned int timeout = OBD_TIMEOUT_LONG);
 	// delay specified number of ms while still receiving and processing GPS data

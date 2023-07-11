@@ -39,7 +39,7 @@ COBDSPI obd;
 
 //PID OBD di cui fare il Logging
 const int numOfPIDs = 4;
-byte pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_ENGINE_REF_TORQUE};
+uint16_t pids[]= {PID_RPM, PID_SPEED, PID_THROTTLE, PID_ENGINE_REF_TORQUE};
 char *stamps[4]= {"rpm", "speed", "throttle", "torque_reference_erogation"};
 int values[4] = {0,0,0,0};
 
@@ -189,7 +189,6 @@ void setup_mqtt() {
   //Lettura Certificato CA in "certificate"
   int c;
   int i=0;
-
   
   espClient.setCACert(x509CA);
   //Setting del Server MQTT e Callback sul topic
@@ -286,7 +285,6 @@ void connect_mqtt() {
 * Funzione di setup del framework Arduino 
 * Invocata a livello di framework durante il primo ciclo di esecuzione del dispositivo, ed eseguita una singola volta
 **************************************************************************/
-
 void setup()
 {
   //Attesa di 2 secondi per il corretto power-up del dispositivo 
@@ -350,7 +348,7 @@ void loop() {
 
     //Lettura dei valori secondo la mappa di elementi della vettura definiti dall'array pids[]
     int value_read;
-    byte pid = pids[i];
+    uint16_t pid = pids[i];
     if (obd.readPID(pid, value_read)) {
       Serial.println(value_read);
     } else { //Conteggio degli errori in lettura, il cui numero può invocare un reset della connessione OBD
@@ -385,7 +383,6 @@ void loop() {
     Serial.println(jsonString);
     client.publish(topicToPublish, jsonString);
   }
-
 }
 
 

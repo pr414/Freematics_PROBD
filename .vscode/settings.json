@@ -48,5 +48,6 @@
         "streambuf": "cpp",
         "cinttypes": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "C:/Users/paolo/Documents/GitRepositories/Freematics_PROBD/.pio/libdeps/esp32dev/ArduinoJson"
 }
