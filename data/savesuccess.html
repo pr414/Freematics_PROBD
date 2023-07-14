@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="https://elux.unibs.it/style.css">
+    <style>
+      body {
+        background-color: #ffffff;
+        font-family: Arial, sans-serif;
+      }
+      h1 {
+        color: #4CAF50;
+        text-align: center;
+        font-family: 'Arial Rounded MT Bold', sans-serif;
+        font-size: 28px;
+      }
+      .success-message {
+        text-align: center;
+        font-size: 22px;
+        color: #4d4d4d;
+        margin-top: 90px;
+      }
+      .logo-container {
+        text-align: center;
+        margin-top: 50px;
+      }
+      .logo-container img {
+        display: block;
+        margin: 0 auto;
+        max-width: 300px;
+      }
+    </style>
+    <script>
+      // Verifica se il dispositivo è mobile
+      function isMobileDevice() {
+        return (
+          typeof window.orientation !== 'undefined' ||
+          navigator.userAgent.indexOf('IEMobile') !== -1
+        );
+      }
+
+      // Applica stili specifici per dispositivi mobili
+      function applyMobileStyles() {
+        var h1 = document.querySelector('h1');
+        h1.style.fontSize = '24px';
+
+        var successMessage = document.querySelector('.success-message');
+        successMessage.style.fontSize = '20px';
+        successMessage.style.marginTop = '30px';
+
+        var logoContainer = document.querySelector('.logo-container');
+        logoContainer.style.marginTop = '30px';
+
+        var logoImage = document.querySelector('.logo-container img');
+        logoImage.style.maxWidth = '200px';
+      }
+
+      // Verifica e applica stili per dispositivi mobili quando la pagina viene caricata
+      window.addEventListener('load', function () {
+        if (isMobileDevice()) {
+          applyMobileStyles();
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <h1>OBD Datalogger Wi-Fi Manager</h1>
+    <div class="success-message">
+      Wi-Fi Credentials saved successfully
+    </div>
+    <div class="logo-container">
+      <br>
+      <br>
+      <img src="eluxlogo.jpg" alt="Elux Logo">
+    </div>
+  </body>
+</html>

@@ -1,0 +1,115 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="https://elux.unibs.it/style.css">
+    <style>
+      body {
+        background-color: #ffffff;
+        font-family: Arial, sans-serif;
+      }
+      h1 {
+        color: #4CAF50;
+        text-align: center;
+        font-family: 'Arial Rounded MT Bold', sans-serif;
+        font-size: 28px;
+      }
+      form {
+        margin: auto;
+        width: 50%;
+        padding: 20px;
+        border-radius: 5px;
+        background-color: #ffffff;
+      }
+      .form-field {
+        text-align: left;
+      }
+      label {
+        font-size: 20px;
+        color: #4d4d4d;
+      }
+      input[type=text],
+      input[type=password] {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        display: inline-block;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      input[type=submit] {
+        background-color: #4CAF50;
+        color: white;
+        padding: 14px 20px;
+        margin-top: 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        float: right;
+      }
+      input[type=submit]:hover {
+        background-color: #45a049;
+      }
+      .logo-container {
+        text-align: center;
+        margin-top: 10px;
+      }
+      .logo-container img {
+        display: block;
+        margin: 0 auto;
+        max-width: 300px;
+      }
+    </style>
+    <script>
+      // Verifica se il dispositivo è mobile
+      function isMobileDevice() {
+        return (
+          typeof window.orientation !== 'undefined' ||
+          navigator.userAgent.indexOf('IEMobile') !== -1
+        );
+      }
+
+      // Applica stili specifici per dispositivi mobili
+      function applyMobileStyles() {
+        var form = document.querySelector('form');
+        form.style.width = '80%';
+
+        var label = document.querySelectorAll('label');
+        for (var i = 0; i < label.length; i++) {
+          label[i].style.fontSize = '18px';
+        }
+
+        var submitBtn = document.querySelector('input[type=submit]');
+        submitBtn.style.float = 'none';
+        submitBtn.style.width = '100%';
+      }
+
+      // Verifica e applica stili per dispositivi mobili quando la pagina viene caricata
+      window.addEventListener('load', function () {
+        if (isMobileDevice()) {
+          applyMobileStyles();
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <h1>OBD Datalogger Wi-Fi Manager</h1>
+    <form method="POST" action="/save">
+      <div class="form-field">
+        <label for="ssid">SSID:</label>
+        <br/>
+        <input type="text" id="ssid" name="ssid" required>
+      </div>
+      <div class="form-field">
+        <label for="password">Password:</label>
+        <br/>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <div class="form-field">
+        <input type="submit" value="Salva">
+      </div>
+    </form>
+    <div class="logo-container">
+      <br>
+      <br>
+      <img src="eluxlogo.jpg" alt="Elux Logo">
+    </div>
+  </body>
+</html>
