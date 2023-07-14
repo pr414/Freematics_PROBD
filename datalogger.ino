@@ -46,6 +46,7 @@ char wifiPassword[512] = "";
 const char* wiFiFilePath = "/wifi.json";
 const char* rootPage = "/root.html";
 const char* savesuccessPage = "/savesuccess.html";
+const char* logoImagePath = "/eluxlogo.png";
 WiFiClientSecure espClient;
 AsyncWebServer server(80);
 
@@ -192,7 +193,25 @@ void handleRootPage(AsyncWebServerRequest *request) {
     return;
   }
 
-  request->send(SPIFFS, rootPage, String(), false);
+  AsyncWebServerResponse *response = request->beginResponse(SPIFFS, rootPage, String(), false);
+  response->addHeader("Content-Type", "text/html");
+  request->send(response);
+
+  configFile.close();
+}
+
+void handleLogoImage(AsyncWebServerRequest *request) {
+  File logoFile = SPIFFS.open(logoImagePath, "r");
+  if (!logoFile) {
+    Serial.println("Error: Unable to load logo image file");
+    request->send(404, "text/plain", "File not found");
+    return;
+  }
+
+  AsyncWebServerResponse *response = request->beginResponse(SPIFFS, logoImagePath, "image/jpeg", false);
+  request->send(response);
+
+  logoFile.close();
 }
 
 /* 
@@ -211,7 +230,10 @@ void handleSavePage(AsyncWebServerRequest *request) {
     return;
   }
 
-  request->send(SPIFFS, savesuccessPage, String(), false);
+  AsyncWebServerResponse *response = request->beginResponse(SPIFFS, savesuccessPage, String(), false);
+  response->addHeader("Content-Type", "text/html");
+  request->send(response);
+
   connectToWiFi();
 }
 
@@ -222,6 +244,7 @@ void handleSavePage(AsyncWebServerRequest *request) {
 void setup_WebServer() {
   server.on("/", HTTP_GET, handleRootPage);
   server.on("/save", HTTP_POST, handleSavePage);
+  server.on(logoImagePath, HTTP_GET, handleLogoImage);
   delay(1000);
 }
 
@@ -403,16 +426,6 @@ void loop() {
     }
   }
 
-  long timestamp = millis();
-  //Timestamp and pack count print to serial
-  /*
-    Serial.print('[');
-    Serial.print(timestamp);
-    Serial.print("] #");
-    Serial.print(pack_count++);
-    Serial.print(" ");
-  */
-
 #if USE_MQTT
   //MQTT Client-to-Broker Processing
   if (!client.connected()) {
@@ -423,6 +436,12 @@ void loop() {
 #endif
 
 #if USE_OBD
+  long timestamp = millis();
+  Serial.print('[');
+  Serial.print(timestamp);
+  Serial.print("] #");
+  Serial.print(pack_count++);
+  Serial.print(" ");
   //Current vehicle state gathering
   obd_sampling();
 
@@ -442,162 +461,3 @@ void loop() {
   }
 #endif
 }
-
-
-
-
-
-
-/*************************************************************************
-* Funzione di setup MQTT con Certificato in SPIFFS
-* Funzione che apre il certificato caricato all'interno del SPIFFS, e che lo imposta come certificato SSL per effettuare la connessione al broker
-* topic a cui risulta iscritto. Funzionante, ma presenta instabilità che non consente la lettura 
-**************************************************************************
-void setup_mqtt() {
-  //Lettura Certificato CA in "certificate"
-  int c;
-  int i=0;
-    File cert_file = SPIFFS.open(certificate_path, FILE_READ);
-
-    vector<String> v;
-    if (!cert_file) {
-      Serial.println("Failed to open CA Certificate");
-      return;
-    } else {
-      delay(100);
-      //v.push_back("\"\n");
-      while (cert_file.available()) {
-        v.push_back(cert_file.readString());
-        //v.push_back("\n");
-        delay(100);
-      }
-      //v.push_back("\"");
-      cert_file.close();
-    }
-
-    String cert_toString = "";
-    for (String s : v) {
-      cert_toString.concat(s);
-    }
-    
-    
-    const char* cert_content = cert_toString.c_str();
-      
-        while (cert_file.available()) {
-          cert_content[i++] = cert_file.read();
-        } 
-    Serial.println("\nCertificate Content appended: ");
-    Serial.printf("%x", *cert_content);
-    Serial.println();
-  
-
-  //Setting del Certificato SSL
-  //espClient.setCACert(cert_content);
-  
-  //Setting del Server MQTT e Callback sul topic
-  client.setServer(mqtt_server, port);
-  client.setCallback(callback);
-}
-*************************************************************/
-
-/************************************
-* Funzione di configurazione Wi-Fi 
-* Funzione che accede ad un file JSON contenente tutte le credenziali Wi-Fi conosciute,
-* per effettuare un tentativo di accesso ciclico ad ognuna di esse. 
-* La funzione necessita di esser testata.
-************************************/
-/*
-void setup_wifi() {
-  delay(10);
-  int ctr = 0;
-  
-  //Apertura del file JSON dal SPIFFS contenente tutte le credenziali Wi-Fi conosciute
-  File wifi_file = SPIFFS.open(networks_path, FILE_READ);
-  if (!wifi_file) {
-    Serial.println("Failed to open Wi-Fi Credential File");
-    return;
-  } else {
-    deserializeJson(jsondocwifi, wifi_file); //Deserializzazione delle credenziali in jsondocwifi
-  }
-
-  //Tentativo di accesso ad una delle credenziali Wi-Fi conosciute
-  while (true) {
-    for (JsonObject credential : jsondocwifi.as<JsonArray>()) {
-      ssid = credential["ssid"].as<const char*>();
-      password = credential["password"].as<const char*>();
-
-      Serial.println();
-      Serial.print("Connecting to ");
-      Serial.println(ssid);
-      Serial.printf("With password %s\n", password);
-
-
-      //Accesso al Wi-Fi con 4 tentativi ciclici su tutte le coppie SSID/password conosciute
-      for (int i=0; i<4; i++) {
-        WiFi.begin(ssid, password);
-        Serial.printf("Attempt %d\n", i);
-        delay(200);
-        if (WiFi.status() == WL_CONNECTED) {
-          Serial.println("");
-          Serial.println("WiFi connected");
-          Serial.println("Local IP address: ");
-          Serial.println(WiFi.localIP());
-          wifi_file.close();
-          return;
-        }
-      }
-    }
-  }
-}
-*/
-
-/************************************
-* Funzione di configurazione Wi-Fi 
-* Funzione che accede ad un file JSON contenente tutte le credenziali Wi-Fi conosciute,
-* per effettuare un tentativo di accesso ciclico ad ognuna di esse. 
-* La funzione necessita di esser testata.
-************************************/
-/*
-void setup_wifi() {
-  delay(10);
-  int ctr = 0;
-  
-  //Apertura del file JSON dal SPIFFS contenente tutte le credenziali Wi-Fi conosciute
-  File wifi_file = SPIFFS.open(networks_path, FILE_READ);
-  if (!wifi_file) {
-    Serial.println("Failed to open Wi-Fi Credential File");
-    return;
-  } else {
-    deserializeJson(jsondocwifi, wifi_file); //Deserializzazione delle credenziali in jsondocwifi
-  }
-
-  //Tentativo di accesso ad una delle credenziali Wi-Fi conosciute
-  while (true) {
-    for (JsonObject credential : jsondocwifi.as<JsonArray>()) {
-      ssid = credential["ssid"].as<const char*>();
-      password = credential["password"].as<const char*>();
-
-      Serial.println();
-      Serial.print("Connecting to ");
-      Serial.println(ssid);
-      Serial.printf("With password %s\n", password);
-
-
-      //Accesso al Wi-Fi con 4 tentativi ciclici su tutte le coppie SSID/password conosciute
-      for (int i=0; i<4; i++) {
-        WiFi.begin(ssid, password);
-        Serial.printf("Attempt %d\n", i);
-        delay(200);
-        if (WiFi.status() == WL_CONNECTED) {
-          Serial.println("");
-          Serial.println("WiFi connected");
-          Serial.println("Local IP address: ");
-          Serial.println(WiFi.localIP());
-          wifi_file.close();
-          return;
-        }
-      }
-    }
-  }
-}
-*/
